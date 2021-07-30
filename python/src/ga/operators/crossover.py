@@ -25,3 +25,23 @@ def simulatedBinaryCrossover(ind1, ind2, eta, probabiliry=None):
         if random.random() < probabiliry:
             ind1[i], ind2[i] = sbc(x1, x2, eta)
     return ind1, ind2
+
+def polynomialMutation(ind, eta, low, up, probabiliry=None):
+    def pm(x, eta, low, up):
+        u = random.random()
+        if u < 0.5:
+            delta = (2 * u) ** (1 / (1 + eta)) - 1
+            c = x + delta * (x - low)
+        else:
+            delta = (1 / (2 * (1 - u))) ** (1 / (eta + 1)) - 1
+            c = x + delta * (up - x)
+        return c
+        
+    l = len(ind)
+    if not probabiliry:
+        probabiliry = 1 / len(ind)
+    for i in range(l):
+        x = ind[i]
+        if random.random() < probabiliry:
+            ind[i] = pm(x, eta, low, up)
+    return ind
