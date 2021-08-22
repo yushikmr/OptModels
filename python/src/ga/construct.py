@@ -18,6 +18,11 @@ class Indivdual:
             self.directions = (1,) * self.num_objects
         if len(self.directions) != self.num_objects:
             raise ValueError(f'the length of direction must be {self.num_objects}')
+    
+    def __len__(self):
+        return len(self.chromosomes)
+    def __getitem__(self, idx):
+        return self.chromosomes[idx]
 
     def addRank(self, rank):
         """addと言いつつ新しいインスタンスを返す
@@ -33,6 +38,14 @@ class Indivdual:
                          directions=self.directions,
                          fitness=func(self.chromosomes, self.num_objects),
                          rank=self.rank)
+    def update_chromosomes(self, newchromosomes):
+        return Indivdual(
+                        chromosomes=newchromosomes, 
+                        num_objects=self.num_objects, 
+                        directions=self.directions,
+                        fitness=self.fitness,
+                        rank=self.rank
+                        )
 
 class Population(list):
     def __init__(self, *v):

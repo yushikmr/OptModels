@@ -7,8 +7,10 @@ from .construct import Population, Indivdual
 class Operator:
     """
     """
-
-    def simulatedBinaryCrossover(ind1, ind2, eta, probabiliry=None):
+    @staticmethod
+    def simulatedBinaryCrossover(ind1:list, ind2:list, eta, probabiliry=None):
+        ind1 = copy.deepcopy(ind1)
+        ind2 = copy.deepcopy(ind2)
         l = max(len(ind1), len(ind2))
         if not probabiliry:
             probabiliry = 1 / l
@@ -33,6 +35,7 @@ class Operator:
                 ind1[i], ind2[i] = sbc(x1, x2, eta)
         return ind1, ind2
 
+    @staticmethod
     def polynomialMutation(ind, eta, low, up, probabiliry=None):
         def pm(x, eta, low, up):
             u = random.random()
