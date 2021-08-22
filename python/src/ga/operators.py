@@ -2,6 +2,8 @@ import copy
 import numpy as np
 import random
 
+from .construct import Population, Indivdual
+
 class Operator:
     """
     """
@@ -56,22 +58,25 @@ class NonDominatedSort:
         dominated_num = [1 for i, j in zip(a, b) if i < j]
         return True if len(dominated_num) == len(a)  else False 
     
-    def nonDominatedInd(self, sample):
-        nonDominatedSample = []
+    def nonDominatedInd(self, sample:Population):
+        nonDominatedSample = Population()
         for ind in sample:
-            dominated_num = sum([self.is_dominated(ind, comp) for comp in sample])
+            dominated_num = sum([self.is_dominated(ind.fitness, comp.fitness) for comp in sample])
             if dominated_num == 0:
                 nonDominatedSample.append(ind)
         return nonDominatedSample  
 
-    def non_dominated_sort(self, sample):
+    def non_dominated_sort(self, sample:Population):
         data = copy.deepcopy(sample)
+        sortedSample = Population()
         rank = 1
         while len(data) > 0:
             rankSample = self.nonDominatedInd(data)
             data = [ind for ind in data if ind not in rankSample]
-            print(f'rank {rank}')
-            print(rankSample)
+            ranked = [ind.addRank(rank) for ind in rankSample]
+            sortedSample.extend(Population(*ranked))
             rank+=1
+        return sortedSample
+        
     def __call__(self, sample):
         return self.non_dominated_sort(sample)

@@ -6,6 +6,7 @@ class Indivdual:
     num_objects:int
     directions:tuple=field(default_factory=tuple)
     fitness:list=field(default_factory=list)
+    rank:int=None
     def __post_init__(self):
         if type(self.chromosomes) != list:
             raise TypeError(f'chromosomes must be list but {type(self.chromosomes)}.')
@@ -36,3 +37,7 @@ class Indivdual:
 class Population(list):
     def __init__(self, *v):
         super().__init__(v)
+    def ranks(self):
+        return [ind.rank for ind in self]
+    def extract_rank(self, rank):
+        return [ind for ind in self if ind.rank == rank]
