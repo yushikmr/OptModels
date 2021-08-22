@@ -3,9 +3,14 @@ import copy
 from .operators import Operator
 from .operators import NonDominatedSort
 
-class NSGA:
+class BaseAlgolithm:
     def __init__(self) -> None:    
         pass
+
+    
+
+class NSGA(BaseAlgolithm):
+    
     def crossover(self, population):
         childlen = copy.deepcopy(population)
         for i, couple in enumerate(zip(*[iter(childlen)]*2)):
