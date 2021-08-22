@@ -54,11 +54,11 @@ class Operator:
         return ind
 
 class NonDominatedSort:
-    def is_dominated(self, a, b):
+    def is_dominated(self, a:tuple, b:tuple) -> bool:
         dominated_num = [1 for i, j in zip(a, b) if i < j]
         return True if len(dominated_num) == len(a)  else False 
     
-    def nonDominatedInd(self, sample:Population):
+    def nonDominatedInd(self, sample:Population) -> Population:
         nonDominatedSample = Population()
         for ind in sample:
             dominated_num = sum([self.is_dominated(ind.fitness, comp.fitness) for comp in sample])
@@ -66,7 +66,7 @@ class NonDominatedSort:
                 nonDominatedSample.append(ind)
         return nonDominatedSample  
 
-    def non_dominated_sort(self, sample:Population):
+    def non_dominated_sort(self, sample:Population) -> Population:
         data = copy.deepcopy(sample)
         sortedSample = Population()
         rank = 1
