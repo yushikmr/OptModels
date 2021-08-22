@@ -73,10 +73,9 @@ class NonDominatedSort:
         while len(data) > 0:
             rankSample = self.nonDominatedInd(data)
             data = [ind for ind in data if ind not in rankSample]
-            ranked = [ind.addRank(rank) for ind in rankSample]
-            sortedSample.extend(Population(*ranked))
+            sortedSample.extend(Population(*[ind.addRank(rank) for ind in rankSample]))
             rank+=1
         return sortedSample
-        
+
     def __call__(self, sample):
         return self.non_dominated_sort(sample)
