@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import random
 
@@ -49,3 +50,28 @@ class Operator:
             if random.random() < probabiliry:
                 ind[i] = pm(x, eta, low, up)
         return ind
+
+class NonDominatedSort:
+    def is_dominated(self, a, b):
+        dominated_num = [1 for i, j in zip(a, b) if i < j]
+        return True if len(dominated_num) == len(a)  else False 
+    
+    def nonDominatedInd(self, sample):
+        nonDominatedSample = []
+        for ind in sample:
+            dominated_num = sum([self.is_dominated(ind, comp) for comp in sample])
+            if dominated_num == 0:
+                nonDominatedSample.append(ind)
+        return nonDominatedSample  
+
+    def non_dominated_sort(self, sample):
+        data = copy.deepcopy(sample)
+        rank = 1
+        while len(data) > 0:
+            rankSample = self.nonDominatedInd(data)
+            data = [ind for ind in data if ind not in rankSample]
+            print(f'rank {rank}')
+            print(rankSample)
+            rank+=1
+    def __call__(self, sample):
+        return self.non_dominated_sort(sample)
