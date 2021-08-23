@@ -17,7 +17,7 @@ class BaseAlgolithm(ABC):
         self.low = low
         self.up = up
 
-    def generate_init_population(self, samplesize):
+    def generate_init_population(self, samplesize:int)->Population:
         self.init_population = Population()
         for i in range(samplesize):
             self.init_population.append(
@@ -32,7 +32,7 @@ class BaseAlgolithm(ABC):
         fitted_population = Population(*[p.allocationFitness(self.evalfunc) for p in population])
         return fitted_population
     
-    def step(self, population) -> Population:
+    def step(self, population:Population) -> Population:
         num = len(population)
         # evolution
         population = self.evolution(population)
@@ -75,19 +75,19 @@ class NSGA(BaseAlgolithm):
             childlen[i+1] = couple[1].update_chromosomes(child2)
         return childlen
 
-    def mutation(self, population):
+    def mutation(self, population:Population)->Population:
         childlen = copy.deepcopy(population)
         for i, ind in enumerate(childlen):
             child= Operator.polynomialMutation(ind.chromosomes, eta=10, low=self.low, up=self.up)
             childlen[i] = ind.update_chromosomes(child)
         return childlen
     
-    def select(self, population, num:int):
+    def select(self, population:Population, num:int)->Population:
         sortFunc = NonDominatedSort()
         sorted_population = sortFunc(population)
         return sorted_population[:num]
 
-    def evolution(self, population):
+    def evolution(self, population:Population)->Population:
         parent = copy.deepcopy(population)
         cx_childlen = self.crossover(parent)
         cxm_childlen = self.mutation(cx_childlen)

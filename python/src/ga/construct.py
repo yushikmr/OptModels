@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Indivdual:
+    """個体.
+    """
     chromosomes:list
     num_objects:int
     directions:tuple=field(default_factory=tuple)
@@ -48,6 +50,8 @@ class Indivdual:
                         )
 
 class Population(list):
+    """個体を集めた母集団
+    """
     def __init__(self, *v):
         super().__init__(v)
     def ranks(self):
@@ -57,5 +61,5 @@ class Population(list):
     def __add__(self, other):
         newpopulation = list(self) + list(other)
         return Population(*newpopulation)
-    def __getitem__(self, idx):
+    def __getitem__(self, idx:int):
         return Population(*(list(self)[idx]))

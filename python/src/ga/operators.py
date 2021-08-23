@@ -8,7 +8,7 @@ class Operator:
     """
     """
     @staticmethod
-    def simulatedBinaryCrossover(ind1:list, ind2:list, eta, probabiliry=None):
+    def simulatedBinaryCrossover(ind1:list, ind2:list, eta, probabiliry=None)->list:
         ind1 = copy.deepcopy(ind1)
         ind2 = copy.deepcopy(ind2)
         l = max(len(ind1), len(ind2))
@@ -36,7 +36,7 @@ class Operator:
         return ind1, ind2
 
     @staticmethod
-    def polynomialMutation(ind, eta, low, up, probabiliry=None):
+    def polynomialMutation(ind:list, eta, low, up, probabiliry=None)->list:
         def pm(x, eta, low, up):
             u = random.random()
             if u < 0.5:
