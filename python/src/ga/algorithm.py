@@ -7,7 +7,7 @@ from .operators import NonDominatedSort
 from .construct import Indivdual, Population
 
 class BaseAlgolithm(ABC):
-    def __init__(self, evalfunc, numVariables:int, numObjects:int, low:float, up:float) -> None:  
+    def __init__(self, evalfunc, numVariables:int, numObjects:int, low:float, up:float, shigma) -> None:  
 
         self.generation = 1
         self.numVariables = numVariables
@@ -16,6 +16,7 @@ class BaseAlgolithm(ABC):
 
         self.low = low
         self.up = up
+        self.shigma = shigma
 
     def generate_init_population(self, samplesize:int)->Population:
         self.init_population = Population()
@@ -85,10 +86,35 @@ class NSGA(BaseAlgolithm):
     def select(self, population:Population, num:int)->Population:
         sortFunc = NonDominatedSort()
         sorted_population = sortFunc(population)
-        return sorted_population[:num]
+        next_population = Population()
+        rank=1
+        while len(next_population) < num:
+            sub_population= [ind for ind in sorted_population if ind.rank == rank]
+            if len(next_population) + len(sub_population) <= num:
+                next_population.extend(sub_population)
+            else:
+                remainder = num - len(next_population)
+                nc_s = [self.niche_count(ind, sub_population) for ind in sub_population]
+                thred_nc = sorted(nc_s, reverse=True)[remainder]
+                sub_populationNiche = [ind.add_niche_count(nc) for ind, nc in zip(sub_population, nc_s)]
+                next_population.extend([ind for ind in sub_populationNiche if ind.niche_count >= thred_nc][:-1])
+            rank+=1
+        return next_population
 
     def evolution(self, population:Population)->Population:
         parent = copy.deepcopy(population)
         cx_childlen = self.crossover(parent)
         cxm_childlen = self.mutation(cx_childlen)
         return parent + cxm_childlen
+
+    def sharingfunction(self, individual1, individual2)-> float:
+        distance = sum([(i -j)**2 for i, j in zip(individual1, individual2)])**(0.5)
+        if distance < self.shigma:
+            return 1 - distance / self.shigma
+        else:
+            return 0
+        
+    def niche_count(self, ind:Indivdual, population:Population) -> float:
+        nc = sum([self.sharingfunction(ind, ind2) for ind2 in population])
+        return nc
+

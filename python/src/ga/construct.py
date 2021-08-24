@@ -9,6 +9,7 @@ class Indivdual:
     directions:tuple=field(default_factory=tuple)
     fitness:list=field(default_factory=list)
     rank:int=None
+    niche_count:float=None
     def __post_init__(self):
         if type(self.chromosomes) != list:
             raise TypeError(f'chromosomes must be list but {type(self.chromosomes)}.')
@@ -48,6 +49,15 @@ class Indivdual:
                         fitness=self.fitness,
                         rank=self.rank
                         )
+    def add_niche_count(self, niche_count):
+        return Indivdual(
+                chromosomes=self.chromosomes, 
+                num_objects=self.num_objects, 
+                directions=self.directions,
+                fitness=self.fitness,
+                rank=self.rank,
+                niche_count=niche_count
+        )
 
 class Population(list):
     """個体を集めた母集団
@@ -62,4 +72,7 @@ class Population(list):
         newpopulation = list(self) + list(other)
         return Population(*newpopulation)
     def __getitem__(self, idx:int):
-        return Population(*(list(self)[idx]))
+        if type(list(self)[idx]) == list:
+            return Population(*(list(self)[idx]))
+        else:
+            return list(self)[idx]
