@@ -36,6 +36,8 @@ class Indivdual:
                          fitness=self.fitness,
                          rank=rank)
     def allocationFitness(self, func):
+        """allocation objects by evaluate function
+        """
         return Indivdual(chromosomes=self.chromosomes, 
                          num_objects=self.num_objects, 
                          directions=self.directions,

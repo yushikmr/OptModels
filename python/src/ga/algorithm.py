@@ -54,6 +54,8 @@ class BaseAlgolithm(ABC):
         return population
     
     def run(self, num_step:int, init_population:Population=None, samplesize=100)->Population:
+        """run evolutionary computation
+        """
         if not init_population:
             population = self.generate_init_population(samplesize=samplesize)
         for i in range(num_step):
@@ -64,6 +66,8 @@ class BaseAlgolithm(ABC):
 class NSGA(BaseAlgolithm):
 
     def crossover(self, population:Population)->Population:
+        """crossover by simulatedBinaryCrossover
+        """
         childlen = copy.deepcopy(population)
         for i, couple in enumerate(zip(*[iter(childlen)]*2)):
             child1, child2 = Operator.simulatedBinaryCrossover(
@@ -77,6 +81,8 @@ class NSGA(BaseAlgolithm):
         return childlen
 
     def mutation(self, population:Population)->Population:
+        """mutation by polynomialMutation
+        """
         childlen = copy.deepcopy(population)
         for i, ind in enumerate(childlen):
             child= Operator.polynomialMutation(ind.chromosomes, eta=10, low=self.low, up=self.up)
@@ -84,6 +90,9 @@ class NSGA(BaseAlgolithm):
         return childlen
     
     def select(self, population:Population, num:int)->Population:
+        """select next population by non-dominated-sort and sharing function
+        
+        """
         sortFunc = NonDominatedSort()
         sorted_population = sortFunc(population)
         next_population = Population()
@@ -102,6 +111,8 @@ class NSGA(BaseAlgolithm):
         return next_population
 
     def evolution(self, population:Population)->Population:
+        """crossover and mutation
+        """
         parent = copy.deepcopy(population)
         cx_childlen = self.crossover(parent)
         cxm_childlen = self.mutation(cx_childlen)
