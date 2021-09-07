@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from .operators import Operator
 from .operators import NonDominatedSort
 from .construct import Indivdual, Population
+from .genetic_functions import niche_count
 
 class BaseAlgolithm(ABC):
     def __init__(self, evalfunc, numVariables:int, numObjects:int, low:float, up:float, shigma) -> None:  
@@ -98,17 +99,17 @@ class NSGA(BaseAlgolithm):
         next_population = Population()
         rank=1
         while len(next_population) < num:
-            sub_population= [ind for ind in sorted_population if ind.rank == rank]
+            sub_population= Population(*[ind for ind in sorted_population if ind.rank == rank])
             if len(next_population) + len(sub_population) <= num:
                 next_population.extend(sub_population)
             else:
                 remainder = num - len(next_population)
-                nc_s = [self.niche_count(ind, sub_population) for ind in sub_population]
+                nc_s = [niche_count(ind.fitness, sub_population.object_list, self.shigma) for ind in sub_population]
                 thred_nc = sorted(nc_s, reverse=True)[remainder]
                 sub_populationNiche = [ind.add_niche_count(nc) for ind, nc in zip(sub_population, nc_s)]
                 next_population.extend([ind for ind in sub_populationNiche if ind.niche_count >= thred_nc][:-1])
             rank+=1
-        return next_population
+        return next_population[:num]
 
     def evolution(self, population:Population)->Population:
         """crossover and mutation

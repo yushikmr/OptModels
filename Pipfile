@@ -9,6 +9,7 @@ jupyterlab = "*"
 matplotlib = "*"
 pytest = "*"
 pybind11 = "*"
+fasttext = "*"
 
 [dev-packages]
 

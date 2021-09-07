@@ -70,6 +70,9 @@ class Population(list):
         return [ind.rank for ind in self]
     def extract_rank(self, rank):
         return [ind for ind in self if ind.rank == rank]
+    @property
+    def object_list(self):
+        return [list(ind.fitness) for ind in self]
     def __add__(self, other):
         newpopulation = list(self) + list(other)
         return Population(*newpopulation)
