@@ -38,8 +38,17 @@ class Population{
         }
         Population add_members(std::vector<Individual> new_members){
             std::vector<Individual> all_members ;
-            all_members = members.insert(members.end(), new_members.begin(), new_members.end());
+            members.insert(members.end(), new_members.begin(), new_members.end());
             return Population(all_members);
+        }
+        std::vector<Individual> rank_memebers(int rank){
+            std::vector<Individual> push_members = {};
+            for(int8_t i=0; i < num_members; i++){
+                if (members[i].rank == rank){
+                    push_members.push_back(members[i]);
+                }
+            }
+            return push_members;
         }
 };
 
@@ -109,15 +118,44 @@ class NSGA{
             Population sorted_population = NSGA::nondominatedsort(population);
             Population next_population(std::vector<Individual> {});
             int rank = 1;
-            while (next_population.num_members < num)
+            while (next_population.num_members <= num)
             {
                 /* code */
-                next_population = next_population.add_members();
+                std::vector<Individual> rank_mb = population.rank_memebers(rank);
+                if (next_population.num_members + rank_mb.size() <= num)
+                {
+                    /* code */
+                    next_population = next_population.add_members(rank_mb);
+                }
+                else{
+                    int remainder = num - next_population.num_members;
+                    // Calculate niche count
+                    std::vector<double> nc_s{};
+                    for(int8_t i=0; i < rank_mb.size(); i++){
+                        nc_s.push_back(NSGA::niche_count(rank_mb[i], next_population, shigma));
+                    }
+                    // sorting niche count
+                    std::sort(nc_s.begin(), nc_s.end() , std::greater<double>());
+                    double thred_nc = nc_s[remainder];
+                    // select add members by niche_count
+                    std::vector<Individual> nc_memb{};
+                    for(int8_t i=0; i < rank_mb.size(); i++){
+                        if (nc_s[i] > thred_nc){
+                            nc_memb.push_back(rank_mb[i]);
+                            if (nc_memb.size() >= remainder){
+                                break;
+                            }
+                        }
+                    }
+                    next_population = next_population.add_members(nc_memb);    
+                }
+                
                 rank += 1;
             }  
 
             return next_population;
         }
+        
 };
 
 
