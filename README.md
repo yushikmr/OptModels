@@ -1,5 +1,8 @@
 # OptModels
-Model building modules for optimization
+Model building modules for optimization.
+
+Code is easier to write than most other libraries, and overwhelmingly fast calculations are achieved. C ++ booster speeds up core computation
+
 
 ## Genetic Algorithm
 
@@ -8,20 +11,21 @@ In computer science and operations research, a genetic algorithm (GA) is a metah
 
 ### sample
 we can try genetic algorithm with a few lines of code
-```notebooks/NSGA.ipynb
-from ga import NSGA
-from problems import dtlz3
+```
+>>> from src import dtlz3
+>>> nsga = NSGAI(dtlz3, 3, 3, 0, 10, 4)
+>>> pop = nsga.run(num_step=1000, samplesize=100)
 
-nsga = NSGA(evalfunc=dtlz3, numVariables=10, numObjects=2, low=0, up=1, shigma=5)
-result = nsga.run(num_step=100)
 ```
 
 ## Usage
-install:
+clone:
 
 `git clone https://github.com/yushikmr/OptModels.git`
 
 preparing:
+
+you should create vertual enviroment and build c++ booster.
 
 cd `OptModels`
 
