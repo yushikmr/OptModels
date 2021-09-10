@@ -12,6 +12,7 @@ In computer science and operations research, a genetic algorithm (GA) is a metah
 ### sample
 we can try genetic algorithm with a few lines of code
 ```
+>>> from src.ga.algorithms import NSGAI
 >>> from src import dtlz3
 >>> nsga = NSGAI(dtlz3, 3, 3, 0, 10, 4)
 >>> pop = nsga.run(num_step=1000, samplesize=100)
