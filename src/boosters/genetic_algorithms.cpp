@@ -1,7 +1,10 @@
 #include <vector>
 #include <cmath>
+#include <algorithm>
+#include <limits>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/operators.h>
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
@@ -12,14 +15,71 @@ class Individual{
         int num_objects;
         std::vector<double> objects;
         int rank;
-        Individual(std::vector<double> variables0, int num_objects0){
+        double nc;
+
+        Individual(std::vector<double> variables0, 
+                   int num_objects0
+                   ){
             variables = variables0; 
             num_objects = num_objects0;
+            rank=0;
         };
+        // constructor for allocate objects
+        Individual(std::vector<double> variables0, 
+                   int num_objects0,
+                   std::vector<double> objects0){
+            variables = variables0; 
+            num_objects = num_objects0;
+            objects = objects0;
+            rank=0;
+                   };
+        Individual(std::vector<double> variables0, 
+                   int num_objects0,
+                   std::vector<double> objects0,
+                   int rank0,
+                   double nc0){
+            variables = variables0; 
+            num_objects = num_objects0;
+            objects = objects0;
+            rank = rank0;
+            nc = nc0;
+                   };
+
         Individual update_variavles(std::vector<double> new_vatiables){
             return Individual(new_vatiables, num_objects);
+        };
+        Individual allocate_objects(std::vector<double> new_objects){
+            return Individual(variables, num_objects, new_objects);
         }
+        Individual allocate_rank(int new_rank){
+            return Individual(variables, num_objects, objects, new_rank, nc);
+        }
+        Individual allocate_nc(double new_nc) const {
+            return Individual(variables, num_objects, objects, rank, new_nc);
+        }
+
 };
+
+
+bool operator> (const Individual &left, const Individual &right){
+    if (left.rank != right.rank)
+    {
+        return left.rank < right.rank;
+    }
+    else{
+        return left.nc > right.nc;
+    }
+}
+
+bool operator>= (const Individual &left, const Individual &right){
+    if (left.rank != right.rank)
+    {
+        return left.rank <= right.rank;
+    }
+    else{
+        return left.nc >= right.nc;
+    }
+}
 
 class Population{
     public:
@@ -29,7 +89,7 @@ class Population{
             members = members0;
             num_members = members.size();
         }
-        std::vector<std::vector<double> > extract_objects(){
+        std::vector<std::vector<double> > extract_objects() const {
             std::vector<std::vector<double> > objects{};
             for (int8_t i=0; i < num_members; i++){
                 objects.push_back(members[i].objects);
@@ -50,7 +110,30 @@ class Population{
             }
             return push_members;
         }
+        static bool compare_inds(const Individual &left, const Individual &right){
+            if (left.rank != right.rank)
+            {
+                return left.rank < right.rank;
+            }
+            else{
+                return left.nc > right.nc;
+            }
+        }
+        Population sorted(){
+            std::vector<Individual>  sorted_members = members;
+            std::sort(sorted_members.begin(), sorted_members.end(), Population::compare_inds);
+            return Population(sorted_members);
+        }
+
 };
+
+Population operator+(const Population &left, const Population &right){
+    std::vector<Individual> new_members;
+    new_members.insert(new_members.end(), left.members.begin(), left.members.end());
+    new_members.insert(new_members.end(), right.members.begin(), right.members.end());
+    Population new_population(new_members);
+    return new_population;
+}
 
 class NSGA{
     public:
@@ -76,7 +159,20 @@ class NSGA{
         Population evaluation(Population population);
         Population nondominatedsort(Population poplation);
 
-        double sharingfunction(const std::vector<double> & obj1, 
+        Population niche_count(const Population &population){
+            int num = population.num_members;
+            std::vector<Individual> new_members;
+            std::vector<std::vector<double> > pop_objs = population.extract_objects();
+            for (int i=0;i<num; i++){
+                double nc = NSGA::_niche_count(population.members[i].objects, pop_objs, shigma);
+                Individual newind = population.members[i].allocate_nc(nc);
+                new_members.push_back(newind);
+            }
+            return Population(new_members);
+        }
+    protected:
+
+        double _sharingfunction(const std::vector<double> & obj1, 
                             const std::vector<double> & obj2, 
                             const double & shigma){
             int l1, l2;
@@ -102,66 +198,74 @@ class NSGA{
             }
         }
 
-        double niche_count(const std::vector<double> & ind, 
-                        const std::vector<std::vector<double> > & population, 
+        double _niche_count(const std::vector<double> & objs, 
+                        const std::vector<std::vector<double> > & pop_objs, 
                         const double & shigma){
             double nc=0, N;
-            N = population.size();
+            N = pop_objs.size();
             for (size_t i = 0; i < N; i++)
             {
                 /* code */
-                nc += NSGA::sharingfunction(ind, population[i], shigma);
+                nc += NSGA::_sharingfunction(objs, pop_objs[i], shigma);
             }
             return nc;
-        }
-        Population select(Population population, int num){
-            Population sorted_population = NSGA::nondominatedsort(population);
-            Population next_population(std::vector<Individual> {});
-            int rank = 1;
-            while (next_population.num_members <= num)
-            {
-                /* code */
-                std::vector<Individual> rank_mb = population.rank_memebers(rank);
-                if (next_population.num_members + rank_mb.size() <= num)
-                {
-                    /* code */
-                    next_population = next_population.add_members(rank_mb);
-                }
-                else{
-                    int remainder = num - next_population.num_members;
-                    // Calculate niche count
-                    std::vector<double> nc_s{};
-                    for(int8_t i=0; i < rank_mb.size(); i++){
-                        nc_s.push_back(NSGA::niche_count(rank_mb[i], next_population, shigma));
-                    }
-                    // sorting niche count
-                    std::sort(nc_s.begin(), nc_s.end() , std::greater<double>());
-                    double thred_nc = nc_s[remainder];
-                    // select add members by niche_count
-                    std::vector<Individual> nc_memb{};
-                    for(int8_t i=0; i < rank_mb.size(); i++){
-                        if (nc_s[i] > thred_nc){
-                            nc_memb.push_back(rank_mb[i]);
-                            if (nc_memb.size() >= remainder){
-                                break;
-                            }
-                        }
-                    }
-                    next_population = next_population.add_members(nc_memb);    
-                }
-                
-                rank += 1;
-            }  
-
-            return next_population;
         }
         
 };
 
 
+double sample(double a, double b){
+    return a + b;
+}
 
 
+namespace py = pybind11;
+PYBIND11_MODULE(genetic_algorithms, m) {
+    m.doc() = R"pbdoc(
+        Pybind11 example plugin
+        -----------------------
 
-int main(){
-    Individual ind1({1,1,1}, 2);
+        .. currentmodule:: python_example
+
+        .. autosummary::
+           :toctree: _generate
+
+           add
+           subtract
+    )pbdoc";
+
+    py::class_<Individual>(m, "Individual")
+              .def(py::init<std::vector<double>, int >())
+              .def(py::self > py::self)
+              .def(py::self >= py::self)
+              .def_readwrite("variables", &Individual::variables)
+              .def_readwrite("objects", &Individual::objects)
+              .def_readwrite("num_objects", &Individual::num_objects)
+              .def_readwrite("rank", &Individual::rank)
+              .def_readwrite("nc", &Individual::nc)
+              .def("update_variables", &Individual::update_variavles)
+              .def("allocate_objects", &Individual::allocate_objects, "allocate objects to individual")
+              .def("allocate_nc", &Individual::allocate_nc, "allocate niche count to individual")
+              .def("allocate_rank", &Individual::allocate_rank, "allocate rank to individual");
+    py::class_<Population>(m, "Population")
+              .def(py::init<const std::vector<Individual> &>())
+              .def_readwrite("members", &Population::members)
+              .def(py::self + py::self)
+              .def("sorted", &Population::sorted);
+    m.def("add", &sample, "sample function", py::arg("a")=0, py::arg("b")=0);
+    py::class_<NSGA>(m, "NSGA")
+              .def(py::init<int, int, int, double, double, double>())
+              .def_readwrite("numvariables", &NSGA::numvariables)
+              .def_readwrite("numobjects", &NSGA::numobjects)
+              .def_readwrite("low", &NSGA::low)
+              .def_readwrite("up", &NSGA::up)
+              .def_readwrite("shigma", &NSGA::shigma)
+              .def("niche_count", &NSGA::niche_count);
+
+
+#ifdef VERSION_INFO
+    m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
+#else
+    m.attr("__version__") = "dev";
+#endif
 }

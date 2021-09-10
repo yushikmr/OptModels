@@ -1,42 +1,101 @@
 
 import random
-import copy
-from abc import ABC, abstractmethod
 from .operators import Operator
 from .operators import NonDominatedSort
-from .construct import Indivdual, Population
-from .genetic_functions import niche_count
 
-class BaseAlgolithm(ABC):
-    def __init__(self, evalfunc, numVariables:int, numObjects:int, low:float, up:float, shigma) -> None:  
+from .genetic_algorithms import Individual, Population, NSGA
 
+class NSGAI(NSGA):
+    """Non-Dminated Sorting Algorithm.
+    """
+    
+    def __init__(
+                self, 
+                evalfunc, 
+                numVariables:int, 
+                numObjects:int, 
+                low:float, 
+                up:float, 
+                shigma) -> None:
+        """constructer 
+        Args:
+            evalfunc(function): evaluate function you want to optimize
+            numVariables(int):the number of variables.
+            numObjects: the number of objects.
+            low(float): lower limit of variables.
+            up(float): upper limit if variables.
+            shigma(float): the parameter of niche count.
+        """  
+
+        super().__init__(1, numVariables, numObjects, low, up, shigma)
         self.generation = 1
-        self.numVariables = numVariables
-        self.numObjects = numObjects
         self.evalfunc = evalfunc
 
-        self.low = low
-        self.up = up
-        self.shigma = shigma
-
     def generate_init_population(self, samplesize:int)->Population:
-        self.init_population = Population()
-        for i in range(samplesize):
-            self.init_population.append(
-                        Indivdual(chromosomes=[random.random() for i in range(self.numVariables)],
-                        num_objects=self.numObjects,
-                        directions=(1,) * self.numObjects)
-            )
+        self.init_population = \
+                Population([Individual([random.random() for i in range(self.numvariables)],
+                                        self.numobjects) for j in range(samplesize)])
+
         return self.init_population
 
 
     def evaluate(self, population:Population) -> Population:
-        fitted_population = Population(*[p.allocationFitness(self.evalfunc) for p in population])
+        """calculate fitness and allocate to individual
+        should select evaluate function when NSGA object build.
+
+        """
+        objects = [self.evalfunc(ind.variables, self.numobjects) for ind in population.members]
+        inds = [ind.allocate_objects(o) for ind, o in zip(population.members, objects)]
+        fitted_population = Population(inds)
         return fitted_population
     
+
+    def crossover(self, population:Population)->Population:
+        """crossover by simulatedBinaryCrossover
+        """
+        members = population.members
+        for i, couple in enumerate(zip(*[iter(members)]*2)):
+            child1, child2 = Operator.simulatedBinaryCrossover(
+                                                                couple[0].variables,
+                                                                couple[1].variables, 
+                                                                eta=10
+                                                                )
+            
+            members[i] = couple[0].update_variables(child1)
+            members[i+1] = couple[1].update_variables(child2)
+        return Population(members)
+
+    def mutation(self, population:Population)->Population:
+        """mutation by polynomialMutation
+        """
+        members = population.members
+        for i, ind in enumerate(members):
+            child= Operator.polynomialMutation(ind.variables, eta=10, low=self.low, up=self.up)
+            members[i] = ind.update_variables(child)
+        return Population(members)
+    
+    def select(self, population:Population, num:int)->Population:
+        """select next population by non-dominated-sort and sharing function
+        
+        """
+        sortFunc = NonDominatedSort()
+        selected_members = sortFunc(population).sorted().members[:num]
+        return Population(selected_members)
+
+    def evolution(self, population:Population)->Population:
+        """crossover and mutation
+        """
+        cx_childlen = self.crossover(population)
+        cxm_childlen = self.mutation(cx_childlen)
+        return population + cxm_childlen
+
+    
     def step(self, population:Population) -> Population:
-        num = len(population)
-        # evolution
+        """the step of genetic algirithm. 
+        Args:
+         population(Population): sample 
+        """
+        num = len(population.members)
         population = self.evolution(population)
         # allocation fitness
         population = self.evaluate(population)
@@ -46,14 +105,6 @@ class BaseAlgolithm(ABC):
 
         return population
 
-    @abstractmethod
-    def evolution(self, population:Population) -> Population:
-        return population
-
-    @abstractmethod
-    def select(self, population:Population) -> Population:
-        return population
-    
     def run(self, num_step:int, init_population:Population=None, samplesize=100)->Population:
         """run evolutionary computation
         """
@@ -62,71 +113,7 @@ class BaseAlgolithm(ABC):
         for i in range(num_step):
             population = self.step(population)
         return population
-  
 
-class NSGA(BaseAlgolithm):
 
-    def crossover(self, population:Population)->Population:
-        """crossover by simulatedBinaryCrossover
-        """
-        childlen = copy.deepcopy(population)
-        for i, couple in enumerate(zip(*[iter(childlen)]*2)):
-            child1, child2 = Operator.simulatedBinaryCrossover(
-                                                                couple[0].chromosomes,
-                                                                couple[1].chromosomes, 
-                                                                eta=10
-                                                                )
-            
-            childlen[i] = couple[0].update_chromosomes(child1)
-            childlen[i+1] = couple[1].update_chromosomes(child2)
-        return childlen
 
-    def mutation(self, population:Population)->Population:
-        """mutation by polynomialMutation
-        """
-        childlen = copy.deepcopy(population)
-        for i, ind in enumerate(childlen):
-            child= Operator.polynomialMutation(ind.chromosomes, eta=10, low=self.low, up=self.up)
-            childlen[i] = ind.update_chromosomes(child)
-        return childlen
-    
-    def select(self, population:Population, num:int)->Population:
-        """select next population by non-dominated-sort and sharing function
-        
-        """
-        sortFunc = NonDominatedSort()
-        sorted_population = sortFunc(population)
-        next_population = Population()
-        rank=1
-        while len(next_population) < num:
-            sub_population= Population(*[ind for ind in sorted_population if ind.rank == rank])
-            if len(next_population) + len(sub_population) <= num:
-                next_population.extend(sub_population)
-            else:
-                remainder = num - len(next_population)
-                nc_s = [niche_count(ind.fitness, sub_population.object_list, self.shigma) for ind in sub_population]
-                thred_nc = sorted(nc_s, reverse=True)[remainder]
-                sub_populationNiche = [ind.add_niche_count(nc) for ind, nc in zip(sub_population, nc_s)]
-                next_population.extend([ind for ind in sub_populationNiche if ind.niche_count >= thred_nc][:-1])
-            rank+=1
-        return next_population[:num]
-
-    def evolution(self, population:Population)->Population:
-        """crossover and mutation
-        """
-        parent = copy.deepcopy(population)
-        cx_childlen = self.crossover(parent)
-        cxm_childlen = self.mutation(cx_childlen)
-        return parent + cxm_childlen
-
-    def sharingfunction(self, individual1, individual2)-> float:
-        distance = sum([(i -j)**2 for i, j in zip(individual1, individual2)])**(0.5)
-        if distance < self.shigma:
-            return 1 - distance / self.shigma
-        else:
-            return 0
-        
-    def niche_count(self, ind:Indivdual, population:Population) -> float:
-        nc = sum([self.sharingfunction(ind, ind2) for ind2 in population])
-        return nc
 

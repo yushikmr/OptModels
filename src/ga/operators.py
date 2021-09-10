@@ -1,8 +1,7 @@
 import copy
-import numpy as np
 import random
 
-from .construct import Population, Indivdual
+from .genetic_algorithms import Individual, Population
 
 class Operator:
     """
@@ -67,18 +66,32 @@ class NonDominatedSort:
             dominated_num = sum([self.is_dominated(ind.fitness, comp.fitness) for comp in sample])
             if dominated_num == 0:
                 nonDominatedSample.append(ind)
-        return nonDominatedSample  
+        return nonDominatedSample
+
+    def isnondominatedInd(self, ind, members:list)-> bool:
+        dominated_num = 0
+        for other in members:  
+            if self.is_dominated(ind.objects, other.objects):
+                dominated_num +=1
+        return True if dominated_num == 0 else False
+
 
     def non_dominated_sort(self, sample:Population) -> Population:
-        data = copy.deepcopy(sample)
-        sortedSample = Population()
+        members = sample.members
+        sorted_members = []
         rank = 1
-        while len(data) > 0:
-            rankSample = self.nonDominatedInd(data)
-            data = [ind for ind in data if ind not in rankSample]
-            sortedSample.extend(Population(*[ind.addRank(rank) for ind in rankSample]))
+        while len(members) > 0:
+            nondominated_sample = []
+            dominated_sample = []
+            for ind in members:
+                if self.isnondominatedInd(ind, members):
+                    nondominated_sample.append(ind.allocate_rank(rank))
+                else:
+                    dominated_sample.append(ind)
             rank+=1
-        return sortedSample
+            sorted_members.extend(nondominated_sample)
+            members = dominated_sample
+        return Population(members)
 
-    def __call__(self, sample):
+    def __call__(self, sample)-> Population:
         return self.non_dominated_sort(sample)
